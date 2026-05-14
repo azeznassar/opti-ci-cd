@@ -1,4 +1,4 @@
-# YAML Pipelines for Optimizely 12+ / .NET 5+ Deployments
+# YAML Pipelines for Optimizely 12+ / .NET 8+ Deployments
 Reusable multi-stage YAML pipelines to setup CI/CD for Optimizely 12+ DXP deployments using Deployment API. 
 
 Multi-stage pipelines allow for combined build and deploy processes in a single pipeline, providing a unified view of your deployment pipeline.
@@ -11,7 +11,7 @@ There are 2 pipelines, `Integration` and `Release`, which allows for concurrent 
 
 The `Integration` pipeline supports direct deploy to the Integration environment using the Deployment API code package approach. This is the recommended approach to deploying to Integration.
 
-The Integration pipeline is triggered when code is merged to `master` and performs a build, test and deploy to the Integration environment.
+The Integration pipeline is triggered when code is merged to `main` and performs a build, test and deploy to the Integration environment.
 
 ## Release
 
