@@ -1,12 +1,12 @@
 # Common variables
-variables: 
-  projects: '**/*.csproj'
-  nugetConfig: 'src/NuGet.Config'
+variables:
+  solution: '**/*.sln'
+  nugetConfig: '/nuget.config'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'  
-  targetFramework: 'net6.0'
   # Prefix for the Nuget package name e.g. customer or project name
-  appName: '[App name]' 
+  appName: 'company' 
   appVersion: '$(Build.BuildNumber)'
-  artifactName: 'DxpPackage'
-
+  artifactName: 'Deployment-Package'
+  project: 'ProjectName.csproj'
+  targetFramework: 'net8.0'
