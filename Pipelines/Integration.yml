@@ -1,20 +1,29 @@
 # YAML Pipeline to build and deploy CMS 12+ solutions to Integration environment using Deployment API
-# Expects the following variables in a variable group named dxp-inte
+# Expects the following variables in a variable group named company-dxp
 #    - ApiKey
 #    - ApiSecret
 #    - ProjectId
+#    - .netVersion
+#    - appName
+#    - appVersion
+#    - artifactName
+#    - buildConfiguration
+#    - buildPlatform
+#    - nugetConfig
+#    - project
+#    - solution
+#    - targetFramework
 #
-# Author: Ron Rangaiya
 # -----------------------------
 
 # Set the pipeline build number format
 name: 'CI.$(Date:yyyyMMdd).$(Rev:r)'
 
 trigger:
-- master
+- main
 
 pool:
-  vmimage: 'windows-latest'
+  vmImage: windows-latest
 
 parameters:
 - name: directDeploy
@@ -23,96 +32,74 @@ parameters:
   default: true
   
 variables:
-- template: variables.yml
-- group: dxp-inte
+- group: company-dxp
 
 stages:
 - stage: CI
+  displayName: 'CI'
   jobs:
   - job: CI
     displayName: 'Build & package'
     steps:
-    - task: DotNetCoreCLI@2
+ 
+    # Pin the .NET 8 SDK — do not rely on whatever the agent has installed
+    - task: UseDotNet@2
+      displayName: 'Use .NET 8 SDK'
+      inputs:
+        packageType: 'sdk'
+        version: $(.netVersion)
+        installationPath: $(Agent.ToolsDirectory)/dotnet
+ 
+    - script: dotnet restore $(project) --configfile $(nugetConfig)
       displayName: 'NuGet Restore'
-      inputs:
-        command: 'restore'
-        projects: '$(projects)'
-        feedsToUse: 'config'
-        nugetConfigPath: 'src/NuGet.config'
-        
-# Run any npm commands to build UI artifacts
-#    - task: Npm@1
-#      displayName: 'Build UI'
-#      inputs:
-#        command: custom
-#        workingDir: ''
-#        verbose: false
-#        customCommand: 'run build'
-
-    - task: DotNetCoreCLI@2
+      workingDirectory: $(Build.SourcesDirectory)
+ 
+    - script: dotnet build $(project) --configuration $(buildConfiguration) --framework $(targetFramework) --no-restore
       displayName: 'Build'
-      inputs:
-        command: 'build'
-        projects: '$(projects)'
-        arguments: '--configuration $(buildConfiguration) --framework $(targetFramework)'
-
-    - task: DotNetCoreCLI@2
-      displayName: 'Test'
-      inputs:
-        command: 'test'
-        projects: '**/*Tests/*.csproj'
-        arguments: '--configuration $(buildConfiguration)'
-
-    - task: DotNetCoreCLI@2
+      workingDirectory: $(Build.SourcesDirectory)
+ 
+    # Uncomment to run tests:
+    # - script: dotnet test **/*Tests/*.csproj --configuration $(buildConfiguration) --no-build
+    #   displayName: 'Test'
+ 
+    - script: dotnet publish $(project) --configuration $(buildConfiguration) --framework $(targetFramework) --no-build --output $(Build.ArtifactStagingDirectory)\PackageContent\
       displayName: 'Publish output'
-      inputs:
-        command: 'publish'
-        publishWebProjects: true
-        arguments: '--configuration $(BuildConfiguration) --framework $(targetFramework) --output $(Build.ArtifactStagingDirectory)\PackageContent\'
-        zipAfterPublish: false
-        modifyOutputPath: false
-
+      workingDirectory: $(Build.SourcesDirectory)
+ 
     - task: ArchiveFiles@2
-      displayName: 'Zip'
+      displayName: 'Zip package'
       inputs:
         rootFolderOrFile: '$(Build.ArtifactStagingDirectory)\PackageContent\'
         includeRootFolder: false
         archiveType: 'zip'
         archiveFile: '$(Build.ArtifactStagingDirectory)/Packages/$(appName).cms.app.$(appVersion).nupkg'
-        replaceExistingArchive: true  
-
+        replaceExistingArchive: true
+ 
     - task: PublishPipelineArtifact@1
       displayName: 'Publish artifact'
       inputs:
         targetPath: '$(Build.ArtifactStagingDirectory)/Packages'
         artifact: '$(artifactName)'
         publishLocation: 'pipeline'
-
-    #[Optional] Add Task to zip commerce package
-
+ 
     - task: PowerShell@2
       displayName: 'Upload package to DXP'
       env:
-        # Map secret variable
         API_SECRET: $(ApiSecret)
       inputs:
         targetType: 'inline'
         script: |
-          $env:PSModulePath = "C:\Modules\azurerm_6.13.1;" + $env:PSModulePath
-          
           if (-not (Get-Module -Name EpiCloud -ListAvailable)) {
               Install-Module EpiCloud -Scope CurrentUser -Force
           }
-          
+ 
           Connect-EpiCloud -ClientKey $(ApiKey) -ClientSecret $env:API_SECRET -ProjectId $(ProjectId)
-          
+ 
           $packagePath = "$(Build.ArtifactStagingDirectory)\Packages\$(appName).cms.app.$(appVersion).nupkg"
-          
+ 
           $saslink = Get-EpiDeploymentPackageLocation
-          
           Add-EpiDeploymentPackage -SasUrl $saslink -Path $packagePath
-          
-          #[Optional] Upload commerce package
+
           
 - stage: Integration 
   jobs:
@@ -121,7 +108,7 @@ stages:
   - deployment: DeployApp
     displayName: 'Deploy to Integration' 
     # Creates an environment if it doesn’t exist
-    environment: 'Integration'
+    environment: 'integration env'
     strategy:
       runOnce:
         deploy:
