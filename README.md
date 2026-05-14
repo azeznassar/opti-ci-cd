@@ -25,7 +25,7 @@ The `Release` pipeline is used to deploy planned releases and applys the followi
 
 ## Variable Groups
 
-Create variable groups 'dxp-inte' and 'dxp-release' for the 2 pipelines respectively, with the following variables (Deployment API credentials can be generated from the DXP Portal):
+Create variable groups 'company-dxp-int' and 'dxp-release' for the 2 pipelines respectively, with the following variables (Deployment API credentials can be generated from the DXP Portal):
 - ProjectId
 - ApiKey
 - ApiSecret (secret variable)
