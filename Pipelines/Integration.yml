@@ -1,5 +1,5 @@
 # YAML Pipeline to build and deploy CMS 12+ solutions to Integration environment using Deployment API
-# Expects the following variables in a variable group named company-dxp
+# Expects the following variables in a variable group named company-dxp-int
 #    - ApiKey
 #    - ApiSecret
 #    - ProjectId
@@ -32,7 +32,7 @@ parameters:
   default: true
   
 variables:
-- group: company-dxp
+- group: company-dxp-int
 
 stages:
 - stage: CI
